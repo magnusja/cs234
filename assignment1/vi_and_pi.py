@@ -39,6 +39,22 @@ def value_iteration(P, nS, nA, gamma=0.9, max_iteration=20, tol=1e-3):
 	############################
 	# YOUR IMPLEMENTATION HERE #
 	############################
+	for _ in range(max_iteration):
+		for s in range(nS):
+			max_a = 0
+			max_va = 0
+			for a in range(nA):
+				va = 0
+				for prob, next_s, r, terminal in P[s][a]:
+					if terminal:
+						va += prob * r
+					else:
+						va += prob * (r + gamma * V[next_s])
+				if va > max_va:
+					max_va = va
+					max_a = a
+			V[s] = max_va
+			policy[s] = max_a
 	return V, policy
 
 
@@ -70,7 +86,20 @@ def policy_evaluation(P, nS, nA, policy, gamma=0.9, max_iteration=1000, tol=1e-3
 	############################
 	# YOUR IMPLEMENTATION HERE #
 	############################
-	return np.zeros(nS)
+	V = np.zeros(nS)
+	for _ in range(max_iteration):
+		for s in range(nS):
+			a = policy[s]
+			current_v = 0
+			for prob, next_s, r, terminal in P[s][a]:
+				#print(s, a, prob, next_s, r, terminal)
+				if terminal:
+					current_v += prob * r
+				else:
+					current_v += prob * (r + gamma * V[next_s])
+
+			V[s] = current_v
+	return V
 
 
 def policy_improvement(P, nS, nA, value_from_policy, policy, gamma=0.9):
@@ -102,7 +131,15 @@ def policy_improvement(P, nS, nA, value_from_policy, policy, gamma=0.9):
 	############################
 	# YOUR IMPLEMENTATION HERE #
 	############################
-	return np.zeros(nS, dtype='int')
+	Q = np.zeros((nS, nA))
+	for s in range(nS):
+		for a in range(nA):
+			for prob, next_s, r, terminal in P[s][a]:
+				if terminal:
+					Q[s, a] += prob * r
+				else:
+					Q[s, a] += prob * (r + gamma * value_from_policy[next_s])
+	return Q.argmax(axis=1)
 
 
 def policy_iteration(P, nS, nA, gamma=0.9, max_iteration=20, tol=1e-3):
@@ -136,6 +173,9 @@ def policy_iteration(P, nS, nA, gamma=0.9, max_iteration=20, tol=1e-3):
 	############################
 	# YOUR IMPLEMENTATION HERE #
 	############################
+	for _ in range(max_iteration):
+		V = policy_evaluation(P, nS, nA, policy)
+		policy = policy_improvement(P, nS, nA, V, policy)
 	return V, policy
 
 
@@ -185,16 +225,22 @@ def render_single(env, policy):
 			break
 	assert done
 	env.render();
-	print "Episode reward: %f" % episode_reward
+	print("Episode reward: %f" % episode_reward)
 
 
 # Feel free to run your own debug code in main!
 # Play around with these hyperparameters.
 if __name__ == "__main__":
 	env = gym.make("Deterministic-4x4-FrozenLake-v0")
-	print env.__doc__
-	print "Here is an example of state, action, reward, and next state"
+	print(env.__doc__)
+	print("Here is an example of state, action, reward, and next state")
 	example(env)
 	V_vi, p_vi = value_iteration(env.P, env.nS, env.nA, gamma=0.9, max_iteration=20, tol=1e-3)
+	print(V_vi)
+	print(p_vi)
+	render_single(env, p_vi)
 	V_pi, p_pi = policy_iteration(env.P, env.nS, env.nA, gamma=0.9, max_iteration=20, tol=1e-3)
+	print(V_pi)
+	print(p_pi)
+	render_single(env, p_pi)
 	
