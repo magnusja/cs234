@@ -243,4 +243,17 @@ if __name__ == "__main__":
 	print(V_pi)
 	print(p_pi)
 	render_single(env, p_pi)
+
+	env = gym.make("Stochastic-4x4-FrozenLake-v0")
+	print(env.__doc__)
+	print("Here is an example of state, action, reward, and next state")
+	example(env)
+	V_vi, p_vi = value_iteration(env.P, env.nS, env.nA, gamma=0.9, max_iteration=20, tol=1e-3)
+	print(V_vi)
+	print(p_vi)
+	render_single(env, p_vi)
+	V_pi, p_pi = policy_iteration(env.P, env.nS, env.nA, gamma=0.9, max_iteration=20, tol=1e-3)
+	print(V_pi)
+	print(p_pi)
+	render_single(env, p_pi)
 	

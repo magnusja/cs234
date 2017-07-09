@@ -36,8 +36,33 @@ def learn_Q_QLearning(env, num_episodes=2000, gamma=0.95, lr=0.1, e=0.8, decay_r
   ############################
   # YOUR IMPLEMENTATION HERE #
   ############################
+  Q = np.zeros((env.nS, env.nA))
+  state_counter = np.ones(env.nS)
+  for epi in range(num_episodes):
+    s = env.reset()
+    done = False
+    while not done:
+      a = Q[s].argmax()
+      if np.random.uniform() < e:
+        a = np.random.randint(env.nA)
 
-  return np.zeros((env.nS, env.nA))
+      next_s, r, done, _ = env.step(a)
+      q_sample = 0
+      if done:
+        q_sample += r
+      else:
+        q_sample += r + gamma * Q[next_s].max()
+
+      Q[s, a] = (1 - lr) * Q[s, a] + lr * q_sample
+      s = next_s
+    
+    if epi % 10 == 0:
+      e = e * decay_rate
+
+  print(Q)
+  print(Q.max(axis=1))
+
+  return Q
 
 def learn_Q_SARSA(env, num_episodes=2000, gamma=0.95, lr=0.1, e=0.8, decay_rate=0.99):
   """Learn state-action values using the SARSA algorithm with epsilon-greedy exploration strategy
@@ -93,7 +118,7 @@ def render_single_Q(env, Q):
     state, reward, done, _ = env.step(action)
     episode_reward += reward
 
-  print "Episode reward: %f" % episode_reward
+  print("Episode reward: %f" % episode_reward)
 
 # Feel free to run your own debug code in main!
 def main():
