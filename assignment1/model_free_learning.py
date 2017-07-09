@@ -6,6 +6,8 @@ import numpy as np
 import gym
 import time
 from lake_envs import *
+import matplotlib.pyplot as plt
+import tqdm
 
 def learn_Q_QLearning(env, num_episodes=2000, gamma=0.95, lr=0.1, e=0.8, decay_rate=0.99):
   """Learn state-action values using the Q-learning algorithm with epsilon-greedy exploration strategy.
@@ -37,30 +39,27 @@ def learn_Q_QLearning(env, num_episodes=2000, gamma=0.95, lr=0.1, e=0.8, decay_r
   # YOUR IMPLEMENTATION HERE #
   ############################
   Q = np.zeros((env.nS, env.nA))
-  state_counter = np.ones(env.nS)
+
   for epi in range(num_episodes):
     s = env.reset()
     done = False
     while not done:
       a = Q[s].argmax()
-      if np.random.uniform() < e:
+      if Q[s].max() == 0 or np.random.uniform() < e:
         a = np.random.randint(env.nA)
 
       next_s, r, done, _ = env.step(a)
       q_sample = 0
       if done:
-        q_sample += r
+        q_sample = r
       else:
-        q_sample += r + gamma * Q[next_s].max()
+        q_sample = r + gamma * Q[next_s].max()
 
       Q[s, a] = (1 - lr) * Q[s, a] + lr * q_sample
       s = next_s
     
-    if epi % 10 == 0:
+    if epi % 50 == 0:
       e = e * decay_rate
-
-  print(Q)
-  print(Q.max(axis=1))
 
   return Q
 
@@ -93,8 +92,32 @@ def learn_Q_SARSA(env, num_episodes=2000, gamma=0.95, lr=0.1, e=0.8, decay_rate=
   ############################
   # YOUR IMPLEMENTATION HERE #
   ############################
+  Q = np.zeros((env.nS, env.nA))
+  for epi in range(num_episodes):
+    s = env.reset()
+    done = False
+    while not done:
+      a = Q[s].argmax()
+      if Q[s].max() == 0 or np.random.uniform() < e:
+        a = np.random.randint(env.nA)
 
-  return np.ones((env.nS, env.nA))
+      next_s, r, done, _ = env.step(a)
+      a_ = Q[next_s].argmax()
+      if np.random.uniform() < e:
+        a_ = np.random.randint(env.nA)
+      q_sample = 0
+      if done:
+        q_sample = r
+      else:
+        q_sample = r + gamma * Q[next_s, a_]
+
+      Q[s, a] = (1 - lr) * Q[s, a] + lr * q_sample
+      s = next_s
+    
+    if epi % 50 == 0:
+      e = e * decay_rate
+
+  return Q
 
 def render_single_Q(env, Q):
   """Renders Q function once on environment. Watch your agent play!
@@ -120,12 +143,47 @@ def render_single_Q(env, Q):
 
   print("Episode reward: %f" % episode_reward)
 
+def evaluate_q(env, Q):
+  episode_reward = 0
+  state = env.reset()
+  done = False
+  i = 0
+  while not done and i < 500:
+    action = np.argmax(Q[state])
+    state, reward, done, _ = env.step(action)
+    episode_reward += reward
+  return episode_reward
+
+def avg_score(env, q, num_repeats=1000):
+  return np.mean([evaluate_q(env, q) for _ in range(num_repeats)])
+
+def learn_and_evaluate_q(env, q_func, episodes):
+  result = np.zeros_like(episodes)
+  for i in tqdm.tqdm(range(episodes.shape[0])):
+    q = q_func(env, episodes[i])
+    result[i] = avg_score(env, q)
+  return result
+
 # Feel free to run your own debug code in main!
 def main():
   env = gym.make('Stochastic-4x4-FrozenLake-v0')
-  Q = learn_Q_QLearning(env)
-  # Q = learn_Q_SARSA(env)
-  render_single_Q(env, Q)
+  #Q = learn_Q_QLearning(env)
+  #Q = learn_Q_SARSA(env)
+  #render_single_Q(env, Q)
+
+  episodes = np.arange(0, 4000, 10)
+  q_learning = learn_and_evaluate_q(env, learn_Q_QLearning, episodes)
+  sarsa = learn_and_evaluate_q(env, learn_Q_QLearning, episodes)
+
+  plt.plot(num_episodes, q_learning)
+  plt.plot(num_episodes, sarsa)
+
+  print(q_learning[-1])
+  print(sarsa[-1])
+
+  plt.legend(['q-learning', 'sarsa'], loc='upper left')
+
+  plt.show()
 
 if __name__ == '__main__':
     main()
