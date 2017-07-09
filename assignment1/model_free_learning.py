@@ -158,7 +158,7 @@ def avg_score(env, q, num_repeats=1000):
   return np.mean([evaluate_q(env, q) for _ in range(num_repeats)])
 
 def learn_and_evaluate_q(env, q_func, episodes):
-  result = np.zeros_like(episodes)
+  result = np.zeros_like(episodes).astype(float)
   for i in tqdm.tqdm(range(episodes.shape[0])):
     q = q_func(env, episodes[i])
     result[i] = avg_score(env, q)
@@ -171,12 +171,12 @@ def main():
   #Q = learn_Q_SARSA(env)
   #render_single_Q(env, Q)
 
-  episodes = np.arange(0, 4000, 10)
+  episodes = np.arange(0, 5000, 10)
   q_learning = learn_and_evaluate_q(env, learn_Q_QLearning, episodes)
   sarsa = learn_and_evaluate_q(env, learn_Q_QLearning, episodes)
 
-  plt.plot(num_episodes, q_learning)
-  plt.plot(num_episodes, sarsa)
+  plt.plot(episodes, q_learning)
+  plt.plot(episodes, sarsa)
 
   print(q_learning[-1])
   print(sarsa[-1])

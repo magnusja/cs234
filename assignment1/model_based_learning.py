@@ -6,6 +6,7 @@ import numpy as np
 import gym
 import time
 from lake_envs import *
+import tqdm
 
 from vi_and_pi import value_iteration
 
@@ -122,6 +123,19 @@ def update_mdp_model_with_history(counts, rewards, history):
   # YOUR IMPLEMENTATION HERE #
   ############################
 
+  episode_counts = np.zeros_like(counts)
+  episode_rewards = np.zeros_like(rewards)
+
+  for s, a, r, next_s, done in history:
+    episode_counts[s, a, next_s] += 1
+    episode_rewards[s, a, next_s] = r
+
+    if done:
+      episode_counts[next_s, a, next_s] += 1
+
+  rewards = (rewards + episode_rewards / (episode_counts + 1)) / 2
+  counts += episode_counts
+
   return counts, rewards
 
 def learn_with_mdp_model(env, num_episodes=5000, gamma = 0.95, e = 0.8, decay_rate = 0.99):
@@ -169,6 +183,29 @@ def learn_with_mdp_model(env, num_episodes=5000, gamma = 0.95, e = 0.8, decay_ra
   # YOUR IMPLEMENTATION HERE #
   ############################
 
+  for _ in tqdm.tqdm(range(num_episodes)):
+    policy = np.zeros(env.nS)
+    history = list()
+    s = env.reset()
+
+    for _ in range(500):
+      a = policy[s]
+      if np.random.uniform() < e:
+        a = np.random.randint(env.nA)
+
+      next_s, r, done, _ = env.step(a)
+
+      history.append((s, int(a), r, next_s, done))
+
+      if done:
+        break
+
+      counts, rewards = update_mdp_model_with_history(counts, rewards, history)
+      P = counts_and_rewards_to_P(counts, rewards)
+      _, policy = value_iteration(P, env.nS, env.nA)
+
+    e *= decay_rate
+
   return np.zeros((env.nS)).astype(int)
 
 def render_single(env, policy):
@@ -193,7 +230,7 @@ def render_single(env, policy):
     state, reward, done, _ = env.step(action)
     episode_reward += reward
 
-  print "Episode reward: %f" % episode_reward
+  print("Episode reward: %f" % episode_reward)
 
 # Feel free to run your own debug code in main!
 def main():
