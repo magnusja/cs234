@@ -171,7 +171,7 @@ def main():
   #Q = learn_Q_SARSA(env)
   #render_single_Q(env, Q)
 
-  episodes = np.arange(0, 5000, 10)
+  episodes = np.arange(0, 2000000, 200000)
   q_learning = learn_and_evaluate_q(env, learn_Q_QLearning, episodes)
   sarsa = learn_and_evaluate_q(env, learn_Q_QLearning, episodes)
 
