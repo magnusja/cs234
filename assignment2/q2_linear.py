@@ -104,7 +104,7 @@ class Linear(DQN):
         state_shape = list(self.env.observation_space.shape)
         h, w, c = state_shape
 
-        with tf.variable_scope(scope, reuse=reuse) as _:
+        with tf.variable_scope(scope, reuse=reuse):
             flattened = tf.cast(tf.reshape(state, [-1, h * w * c * self.config.state_history]), tf.float32)
             out = tf.layers.dense(inputs=flattened, units=num_actions, name='q')
             return out
