@@ -240,12 +240,14 @@ class Linear(DQN):
         #################### YOUR CODE HERE - 8-12 lines #############
 
         adam = tf.train.AdamOptimizer(learning_rate=self.lr)
-        q = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope)
-        grads = adam.compute_gradients(self.loss, [q])
+        variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope)
+        gradients, v = list(zip(*adam.compute_gradients(self.loss, variables)))
+
         if self.config.grad_clip:
-            grads = [(tf.clip_by_norm(grad, self.config.clip_val), var) for grad, var in grads]
-        self.train_op = adam.apply_gradients(grads)
-        self.grad_norm = tf.global_norm(grads)
+            gradients, _ = tf.clip_by_global_norm(gradients, self.config.clip_val)
+
+        self.grad_norm = tf.global_norm(gradients)
+        self.train_op = adam.apply_gradients(list(zip(gradients, v)))
 
         
         ##############################################################
