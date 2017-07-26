@@ -4,6 +4,8 @@ from frozen_lake import *
 import numpy as np
 import time
 from utils import *
+import matplotlib.pyplot as plt
+import tqdm
 
 
 def rmax(env, gamma, m, R_max, epsilon, num_episodes, max_step = 6):
@@ -39,20 +41,59 @@ def rmax(env, gamma, m, R_max, epsilon, num_episodes, max_step = 6):
 	#                   YOUR CODE HERE                     #
 	########################################################
 
-	
+	avg_scores = np.zeros(num_episodes)
+	total_score = 0
+	for ep in range(num_episodes):
+		s = env.reset()
+		done = False
+		for _ in range(max_step):
+			if done:
+				break
+			best_a = np.argmax(Q[s])
+			next_s, r, done, _ = env.step(best_a)
+
+			if nSA[s, best_a] < m:
+				nSA[s, best_a] += 1
+				R[s, best_a] += r
+				nSASP[s, best_a, next_s] += 1
+				total_score += r
+
+				if nSA[s, best_a] == m:
+					for _ in range(int( np.ceil(np.log(1 / (epsilon * (1 - gamma))) / (1 - gamma)) )):
+						for i_s in range(env.nS):
+							for a in range(env.nA):
+								if nSA[i_s, a] >= m:
+									v = R[i_s, a] / nSA[i_s, a]
+									for next_is in range(env.nS):
+										t = nSASP[i_s, a, next_is] / nSA[i_s, a]
+										v += gamma * t * np.max(Q[next_is])
+
+									Q[i_s, a] = v
+
+			s = next_s
+			avg_scores[ep] = total_score / (ep + 1)
+
 
 
 	########################################################
 	#                    END YOUR CODE                     #
 	########################################################
-	return Q
+	return Q, avg_scores
 
 
 def main():
 	env = FrozenLakeEnv(is_slippery=False)
 	print env.__doc__
-	Q = rmax(env, gamma = 0.99, m=10, R_max = 1, epsilon = 0.1, num_episodes = 1000)
-	render_single_Q(env, Q)
+
+	plt.xlabel('episodes')
+	plt.ylabel('average score')
+	for m in tqdm.tqdm(range(10)):
+			Q, avg_scores = rmax(env, gamma=0.99, m=m, R_max=1, epsilon=0.1, num_episodes=1000)
+			print(Q)
+			render_single_Q(env, Q)
+			plt.plot(avg_scores)
+	plt.legend(['m = '+str(i) for i in range(1,10,1)], loc='upper left')
+	plt.show()
 
 
 if __name__ == '__main__':
